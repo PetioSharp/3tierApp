@@ -1,11 +1,15 @@
 # Create an EC2 Auto Scaling Group - app
 resource "aws_autoscaling_group" "three-tier-app-asg" {
   name                = "three-tier-app-asg"
+  launch_template {
+    id = aws_launch_template.three-tier-app-template.id
+    version = "$Latest"
+  }
   vpc_zone_identifier = [aws_subnet.three-tier-pvt-sub-1.id, aws_subnet.three-tier-pvt-sub-2.id]
   min_size            = 2
   max_size            = 3
   desired_capacity    = 2
-  launch_configuration = aws_launch_configuration.three-tier-app-lconfig.id
+  
 
 }
 
@@ -34,21 +38,33 @@ resource "aws_security_group" "three-tier-ec2-asg-sg-app" {
 }
 
 # Create a launch configuration for the EC2 instances
-resource "aws_launch_configuration" "three-tier-app-lconfig"                                           {
-  name_prefix         = "three-tier-app-lconfig" 
+resource "aws_launch_template" "three-tier-app-template"                                           {
+  name_prefix         = "three-tier-app-template" 
   image_id            = var.image_id
   instance_type       = var.instance_type
-  key_name            = "three-tier-app-asg-kp"
-  security_groups     = [aws_security_group.three-tier-ec2-asg-sg-app.id]
-  user_data           = <<-EOF
-                        #!/bin/bash
+  key_name            = "my-ec2-key-pair"
 
-                        sudo yum install mysql -y
+  network_interfaces {
+    security_groups     = [aws_security_group.three-tier-ec2-asg-sg-app.id]
+    associate_public_ip_address = true
+  }
+  
+  user_data = base64encode(<<-EOF
+  #!/bin/bash
+  sudo yum install mysql -y
+  EOF
+  )
+ 
 
-                        EOF
-  associate_public_ip_address = false
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size = 20
+      volume_type = "gp3"
+    }
+  }
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = all
   }
 
