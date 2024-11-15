@@ -137,3 +137,78 @@ resource "aws_nat_gateway" "three-tier-natgw-01" {
 
   tags = merge(var.default_tags, { Name = "three-tier-natgw-01" })
 }
+
+# Load balancer - web tier
+resource "aws_lb" "three-tier-web-aws-lb" {
+  name                   = "three-tier-wen-lb"
+  internal               = true
+  load_balancer_type     = "application" 
+
+  security_groups = [aws_security_group.three-tier-alb-sg-1.id ]
+  subnets         = [aws_subnet.three-tier-pub-sub-1.id, aws_subnet.three-tier-pub-sub-2.id]
+
+  tags = merge(var.default_tags, {Environement= "three-tier-web-lb" })
+}
+
+
+# SG for the Load Balancer
+resource "aws_security_group" "three-tier-alb-sg-1" {
+  name        = "three-tier-alb-sg-1"
+  description = "SG for Application Load Balancer"
+  vpc_id      = aws_vpc.three-tier-vpc.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Allow HTTP traffic from all sources
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"] # Allow all outbound traffic
+  }
+
+  tags = {
+    Name = "three-tier-alb-sg-1"
+  }
+}
+
+# Load balancer target group -web tier
+resource "aws_lb_target_group" "three-tier-web-lb-tg" {
+  name            = "three-tier-web-lb-tg"
+  port            = 80
+  protocol        = "HTTP"
+  vpc_id          = aws_vpc.three-tier-vpc.id 
+
+  health_check {
+    interval            = 30
+    path                = "/"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 10
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+  }
+  
+}
+
+# Load balancer listener -web tier
+resource "aws_lb_listener" "three-tier-web-lb-listner" {
+  load_balancer_arn     = aws_lb.three-tier-web-aws-lb.arn
+  port                  = "80"
+  protocol              = "HTTP"
+  default_action {
+    type                = "forward"
+    target_group_arn    =  aws_lb_target_group.three-tier-web-lb-tg.arn
+  }  
+  
+}
+
+# # Register the instances with the target group - web tier
+# resource "aws_autoscaling_attachment" "three-tier-web-asattach" {
+#   autoscaling_group_name = aws_autoscaling_group.three-tier-asg.name
+#   target_group_arn       = aws_lb_target_group.three-tier-web-lb-tg.arn
+# }

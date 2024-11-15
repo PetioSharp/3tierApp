@@ -37,3 +37,17 @@ variable "availability_zones" {
   description = "List of availability zones"
   default     = ["eu-west-1a", "eu-west-1b"]
 }
+
+# Define AMI ID
+variable "image_id" {
+  description = "The AMI ID for the EC2 instances in the ASG"
+  type        = string
+  default     = "ami-0d64bb532e0502c46"  
+}
+
+# Define EC2 instance type
+variable "instance_type" {
+  description = "The instance type for the EC2 instance in ASG"
+  type        = string
+  default     = "t2.micro"
+}
