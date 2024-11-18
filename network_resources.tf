@@ -140,14 +140,26 @@ resource "aws_nat_gateway" "three-tier-natgw-01" {
 
 # Load balancer - web tier
 resource "aws_lb" "three-tier-web-aws-lb" {
-  name                   = "three-tier-wen-lb"
-  internal               = true
+  name                   = "three-tier-web-lb"
+  internal               = false
   load_balancer_type     = "application" 
 
   security_groups = [aws_security_group.three-tier-alb-sg-1.id ]
   subnets         = [aws_subnet.three-tier-pub-sub-1.id, aws_subnet.three-tier-pub-sub-2.id]
 
-  tags = merge(var.default_tags, {Environement= "three-tier-web-lb" })
+  tags = merge(var.default_tags, {Environement = "three-tier-web-lb" })
+}
+
+# Load balancer - app tier
+resource "aws_lb" "three-tier-app-aws-lb" {
+  name                   = "three-tier-app-lb"
+  internal               = true
+  load_balancer_type     = "network"
+  
+  security_groups = [aws_security_group.three-tier-ec2-asg-sg-app.id]
+  subnets         = [aws_subnet.three-tier-pvt-sub-3.id, aws_subnet.three-tier-pvt-sub-4.id]
+
+  tags = merge(var.default_tags, {Environement = "three-tier-app-lb"}) 
 }
 
 
@@ -195,10 +207,29 @@ resource "aws_lb_target_group" "three-tier-web-lb-tg" {
   
 }
 
+# Load balancer target group -app tier
+resource "aws_lb_target_group" "three-tier-app-lb-tg" {
+  name             = "three-tier-app-lb-tg"
+  port             = 3306
+  protocol         = "TCP"
+  vpc_id           = aws_vpc.three-tier-vpc.id 
+
+  health_check {
+    interval            = 30
+    port                = "traffic-port"
+    protocol            = "TCP"
+    timeout             = 10
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    
+  }
+  
+}
+
 # Load balancer listener -web tier
 resource "aws_lb_listener" "three-tier-web-lb-listner" {
   load_balancer_arn     = aws_lb.three-tier-web-aws-lb.arn
-  port                  = "80"
+  port                  =  80
   protocol              = "HTTP"
   default_action {
     type                = "forward"
@@ -206,6 +237,21 @@ resource "aws_lb_listener" "three-tier-web-lb-listner" {
   }  
   
 }
+
+# Load balancer listener -app tier
+resource "aws_lb_listener" "three-tier-app-lb-listener" {
+  load_balancer_arn       = aws_lb.three-tier-app-aws-lb.arn
+  port                    = 3306
+  protocol                = "TCP"
+
+  default_action {
+    type                  = "forward"
+    target_group_arn = aws_lb_target_group.three-tier-app-lb-tg.arn  
+  } 
+  
+}
+
+
 
 # # Register the instances with the target group - web tier
 # resource "aws_autoscaling_attachment" "three-tier-web-asattach" {

@@ -5,7 +5,7 @@ resource "aws_autoscaling_group" "three-tier-asg" {
     id      = aws_launch_template.three-tier-web-template.id
     version = "$Latest"
   } 
-  vpc_zone_identifier  =  [aws_subnet.three-tier-pub-sub-1.id, aws_subnet.three-tier-pub-sub-2.id]
+  vpc_zone_identifier  =  [aws_subnet.three-tier-pvt-sub-1.id, aws_subnet.three-tier-pvt-sub-2.id]
   min_size             = 2
   max_size             = 3
   desired_capacity     = 2    
@@ -27,20 +27,40 @@ resource "aws_security_group" "three-tier-ec2-asg-sg" {
   vpc_id               =   aws_vpc.three-tier-vpc.id 
 
   ingress {
-     from_port  = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+      from_port        = 22
+      to_port          = 22
+      protocol         = "tcp"
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.bastion-sg.id] 
+      self             = false
+    }
+  ingress {
+    from_port          = 80
+    to_port            = 80
+    protocol           = "tcp"
+    cidr_blocks        = ["0.0.0.0/0"]
+    ipv6_cidr_blocks   = []
+    prefix_list_ids    = []
+    self               = false
   }
+
+
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+    from_port          = 0
+    to_port            = 0
+    protocol           = "-1"
+    cidr_blocks        = ["0.0.0.0/0"]
+    ipv6_cidr_blocks   = []
+    prefix_list_ids    = []
+    self               = false
 
+  }
+  
+}
+  
 # Create a launch configuration for the EC2 instances
 resource "aws_launch_template" "three-tier-web-template" {
   name_prefix          = "three-tier-web-lconfig"
@@ -50,93 +70,43 @@ resource "aws_launch_template" "three-tier-web-template" {
   
   network_interfaces {
     security_groups    = [aws_security_group.three-tier-ec2-asg-sg.id] 
-    associate_public_ip_address = true
+    associate_public_ip_address = false
   }
   
   user_data = base64encode(<<-EOF
     #!/bin/bash
 
-    # Update the system
-    sudo yum -y update
+    # Update and upgrade the system
+    sudo apt update -y
+    sudo apt upgrade -y
 
     # Install Apache web server
-    sudo yum -y install httpd
+    sudo apt install apache2 -y
 
     # Start Apache web server
-    sudo systemctl start httpd.service
+    sudo systemctl start apache2
+    sudo systemctl enable apache2
 
-    # Enable Apache to start at boot
-    sudo systemctl enable httpd.service
-
-    # Create index.html file with your custom HTML
-    sudo echo '
+    # Create the custom index.html file
+    sudo bash -c 'cat > /var/www/html/index.html <<EOL
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>A Basic HTML5 Template</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
-      <link rel="stylesheet" href="css/styles.css?v=1.0" />
     </head>
     <body>
-      <div class="wrapper">
-        <div class="container">
-          <h1>Welcome! An Apache web server has been started successfully.</h1>
-          <h2>Achintha Bandaranaike</h2>
-        </div>
+      <div>
+        <h1>Welcome! Apache web server is running successfully.</h1>
+        <h2>Achintha Bandaranaike</h2>
       </div>
     </body>
     </html>
+    EOL'
 
-    <style>
-    body {
-        background-color: #34333d;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: Inter;
-        padding-top: 128px;
-    }
-
-    .container {
-        box-sizing: border-box;
-        width: 741px;
-        height: 449px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 48px 48px 48px 48px;
-        box-shadow: 0px 1px 32px 11px rgba(38, 37, 44, 0.49);
-        background-color: #5d5b6b;
-        overflow: hidden;
-        align-content: flex-start;
-        flex-wrap: nowrap;
-        gap: 24;
-        border-radius: 24px;
-    }
-
-    .container h1 {
-        flex-shrink: 0;
-        width: 100%;
-        height: auto;
-        position: relative;
-        color: #ffffff;
-        line-height: 1.2;
-        font-size: 40px;
-    }
-    .container p {
-        position: relative;
-        color: #ffffff;
-        line-height: 1.2;
-        font-size: 18px;
-    }
-    </style>
-    ' > /var/www/html/index.html
-
+    # Restart Apache to load new index.html
+    sudo systemctl restart apache2
   EOF
   )
 
