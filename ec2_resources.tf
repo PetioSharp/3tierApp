@@ -34,6 +34,23 @@ resource "aws_security_group" "three-tier-ec2-asg-sg-app" {
     cidr_blocks = ["10.0.0.0/16"]
   }
 
+  ingress {
+      from_port        = 22
+      to_port          = 22
+      protocol         = "tcp"
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.bastion-sg.id] 
+      self             = false
+  }
+
+  ingress {
+      from_port   = -1
+      to_port     = -1
+      protocol    = "icmp"
+      security_groups = [aws_security_group.three-tier-ec2-asg-sg.id]
+  }
   egress {
     from_port = 0
     to_port   = 0
@@ -59,6 +76,7 @@ resource "aws_launch_template" "three-tier-app-template"                        
   
   user_data = base64encode(<<-EOF
   #!/bin/bash
+  
   sudo yum install mysql -y
   EOF
   )
