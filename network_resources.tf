@@ -210,7 +210,7 @@ resource "aws_lb_target_group" "three-tier-web-lb-tg" {
 # Load balancer target group -app tier
 resource "aws_lb_target_group" "three-tier-app-lb-tg" {
   name             = "three-tier-app-lb-tg"
-  port             = 3306
+  port             = 80
   protocol         = "TCP"
   vpc_id           = aws_vpc.three-tier-vpc.id 
 
@@ -241,7 +241,7 @@ resource "aws_lb_listener" "three-tier-web-lb-listner" {
 # Load balancer listener -app tier
 resource "aws_lb_listener" "three-tier-app-lb-listener" {
   load_balancer_arn       = aws_lb.three-tier-app-aws-lb.arn
-  port                    = 3306
+  port                    = 80
   protocol                = "TCP"
 
   default_action {

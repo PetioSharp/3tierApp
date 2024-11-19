@@ -74,39 +74,41 @@ resource "aws_launch_template" "three-tier-web-template" {
   }
   
   user_data = base64encode(<<-EOF
-    #!/bin/bash
+!/bin/bash
+# Wait for the instance to initialize
+sleep 30
 
-    # Update and upgrade the system
-    sudo apt update -y
-    sudo apt upgrade -y
+# Update the system
+sudo apt update -y
 
-    # Install Apache web server
-    sudo apt install apache2 -y
+# Install Apache web server
+sudo apt install apache2 -y
 
-    # Start Apache web server
-    sudo systemctl start apache2
-    sudo systemctl enable apache2
+# Start Apache web server
+sudo systemctl start apache2
 
-    # Create the custom index.html file
-    sudo bash -c 'cat > /var/www/html/index.html <<EOL
-    <!DOCTYPE html>
-    <html lang="en">
+# Enable Apache to start at boot
+sudo systemctl enable apache2
+
+# Create index.html file with your custom HTML
+echo '<!DOCTYPE html>
+<html lang="en">
     <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>A Basic HTML5 Template</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>A Basic HTML5 Template</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
     </head>
     <body>
-      <div>
-        <h1>Welcome! Apache web server is running successfully.</h1>
-        <h2>Achintha Bandaranaike</h2>
-      </div>
+        <div class="wrapper">
+            <div class="container">
+                <h1>Welcome! Apache has been set up successfully.</h1>
+            </div>
+        </div>
     </body>
-    </html>
-    EOL'
-
-    # Restart Apache to load new index.html
-    sudo systemctl restart apache2
+</html>' | sudo tee /var/www/html/index.html > /dev/null
   EOF
   )
 
