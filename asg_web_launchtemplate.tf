@@ -78,41 +78,34 @@ resource "aws_launch_template" "three-tier-web-template" {
   }
   
  user_data = base64encode(<<-EOF
-!/bin/bash
-# Wait for the instance to initialize
-sleep 30
-
-# Update the system
+#!/bin/bash
+# Update system packages
 sudo apt update -y
+sudo apt upgrade -y
 
-# Install Apache web server
-sudo apt install apache2 -y
+# Install Apache
+sudo apt install -y apache2
 
-# Start Apache web server
+# Start Apache service
 sudo systemctl start apache2
 
-# Enable Apache to start at boot
+# Enable Apache to start on boot
 sudo systemctl enable apache2
 
-# Create index.html file with your custom HTML
-echo '<!DOCTYPE html>
+# Create a custom index.html file
+cat <<EOF > /var/www/html/index.html
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>A Basic HTML5 Template</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    </head>
-    <body>
-        <div class="wrapper">
-            <div class="container">
-                <h1>Welcome! Apache has been set up successfully.</h1>
-            </div>
-        </div>
-    </body>
-</html>' | sudo tee /var/www/html/index.html > /dev/null
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Apache on Ubuntu</title>
+</head>
+<body>
+    <h1>Welcome to your Apache Server!</h1>
+    <p>This server is launched via an Auto Scaling Group in AWS.</p>
+</body>
+</html>
   EOF
   )
   iam_instance_profile {

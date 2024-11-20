@@ -77,7 +77,25 @@ resource "aws_launch_template" "three-tier-app-template"                        
   user_data = base64encode(<<-EOF
   #!/bin/bash
 
-  sudo yum install mysql -y
+  # Log the output to a file for debugging
+  exec > /var/log/user-data.log 2>&1
+
+  # Update the system packages
+  sudo yum update
+
+  # Enable Amazon Linux Extras if not already enabled
+  dnf install -y amazon-linux-extras
+  amazon-linux-extras enable mariadb10.5
+
+  # Clean the package metadata
+  dnf clean metadata
+
+  # Install the MariaDB client (MySQL-compatible)
+  dnf install -y mariadb
+
+  # Verify the MariaDB client installation
+  mariadb --version > /var/log/mysql-client-version.log
+  
   EOF
   )
  

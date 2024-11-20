@@ -24,3 +24,8 @@ default_tags = {
   Environment = "Production"
   Owner       = "DevOps Team"
 }
+
+# AMI's
+image_id = "ami-0d64bb532e0502c46"
+
+
