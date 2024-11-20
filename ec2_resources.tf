@@ -68,28 +68,19 @@ resource "aws_launch_template" "three-tier-app-template"                        
   image_id            = var.image_id
   instance_type       = var.instance_type
   key_name            = "my-ec2-key-pair"
-
+  
+  
+  
   network_interfaces {
     security_groups     = [aws_security_group.three-tier-ec2-asg-sg-app.id]
     associate_public_ip_address = false
   }
   
-user_data = base64encode(<<-EOF
+
+ user_data = base64encode(<<-EOF
 #!/bin/bash
-
-# Log the output to a file for debugging
-exec > /var/log/user-data.log 2>&1
-
-
-# Ensure apt metadata is up to date
-rm -rf /var/lib/apt/lists/*
 apt update -y && apt upgrade -y
-
-# Install the MySQL client (compatible with MariaDB)
 DEBIAN_FRONTEND=noninteractive apt install -y mysql-client
-
-# Verify the installation
-mysql --version > /var/log/mysql-client-version.log || echo "MySQL installation failed" >> /var/log/user-data.log
 EOF
 )
 
