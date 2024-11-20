@@ -77,7 +77,7 @@ resource "aws_launch_template" "three-tier-web-template" {
     associate_public_ip_address = false
   }
   
-  user_data = base64encode(<<-EOF
+ user_data = base64encode(<<-EOF
 !/bin/bash
 # Wait for the instance to initialize
 sleep 30
@@ -115,6 +115,9 @@ echo '<!DOCTYPE html>
 </html>' | sudo tee /var/www/html/index.html > /dev/null
   EOF
   )
+  iam_instance_profile {
+    name = aws_iam_instance_profile.three-tier-instance-profile.name
+  }
 
   block_device_mappings {
     device_name = "/dev/xvda"

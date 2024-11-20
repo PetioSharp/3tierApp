@@ -251,6 +251,44 @@ resource "aws_lb_listener" "three-tier-app-lb-listener" {
   
 }
 
+# IAM Role allow updating packages
+
+resource "aws_iam_instance_profile" "three-tier-instance-profile" {
+  name = "three-tier-instance-profile"
+  role = aws_iam_role.three-tier-role.name
+}
+
+resource "aws_iam_role" "three-tier-role" {
+  name = "three-tier-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_policy" "three-tier-policy" {
+  name   = "three-tier-policy"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["ec2:Describe*", "s3:GetObject"]
+      Resource = "*"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "three-tier-attach" {
+  role       = aws_iam_role.three-tier-role.name
+  policy_arn = aws_iam_policy.three-tier-policy.arn
+}
+
 
 
 # # Register the instances with the target group - web tier

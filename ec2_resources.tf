@@ -76,7 +76,7 @@ resource "aws_launch_template" "three-tier-app-template"                        
   
   user_data = base64encode(<<-EOF
   #!/bin/bash
-  
+
   sudo yum install mysql -y
   EOF
   )
@@ -128,8 +128,14 @@ resource "aws_instance" "bastion" {
   key_name                    = "my-ec2-key-pair"
   subnet_id                   = aws_subnet.three-tier-pub-sub-1.id
   associate_public_ip_address = true
+  vpc_security_group_ids      = ["sg-0485c22988e266e9d"]
   
-  security_groups = [aws_security_group.bastion-sg.id]
+  lifecycle {
+    ignore_changes = [
+      associate_public_ip_address,
+      vpc_security_group_ids
+    ]
+  }
 
   tags                        = {
     Name = "Bastion Host"
