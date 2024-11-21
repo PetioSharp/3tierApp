@@ -79,8 +79,22 @@ resource "aws_launch_template" "three-tier-app-template"                        
 
  user_data = base64encode(<<-EOF
 #!/bin/bash
-apt update -y && apt upgrade -y
-DEBIAN_FRONTEND=noninteractive apt install -y mysql-client
+set -e
+
+# Update the package list
+echo "Updating package list..."
+apt-get update -y
+
+# Retry package installation with fix-missing
+echo "Installing MySQL client..."
+apt-get install --fix-missing -y mysql-client || {
+  echo "Retrying package installation with a different mirror..."
+  # Replace the default mirror if it fails
+  sed -i 's|http://.*archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+  sed -i 's|http://.*security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+  apt-get update -y
+  apt-get install -y mysql-client
+}
 EOF
 )
 
@@ -131,7 +145,7 @@ resource "aws_instance" "bastion" {
   key_name                    = "my-ec2-key-pair"
   subnet_id                   = aws_subnet.three-tier-pub-sub-1.id
   associate_public_ip_address = true
-  vpc_security_group_ids      = ["sg-0485c22988e266e9d"]
+  vpc_security_group_ids      = ["sg-0f268f6b089356d99"]
   
   lifecycle {
     ignore_changes = [
