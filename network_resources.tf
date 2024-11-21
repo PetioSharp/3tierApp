@@ -290,6 +290,30 @@ resource "aws_iam_role_policy_attachment" "three-tier-attach" {
   policy_arn = aws_iam_policy.three-tier-policy.arn
 }
 
+resource "aws_iam_role" "ssm_role" {
+  name = "SSMRole"
+
+   assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+  
+
+resource "aws_iam_role_policy_attachment" "ssm_policy_attachement" {
+  role = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
 
 
 # # Register the instances with the target group - web tier

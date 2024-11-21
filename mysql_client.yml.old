@@ -1,0 +1,31 @@
+---
+- name: Install MySQL Client on App Servers
+  hosts: app_servers
+  become: yes
+
+  tasks:
+    - name: Update the package list
+      apt:
+        update_cache: yes
+
+    - name: Install MySQL client
+      apt:
+        name: mysql-client
+        state: present
+        update_cache: yes
+
+    - name: Retry installation with different mirror if needed
+      block:
+        - name: Replace archive mirrors if apt-get fails
+          command: sed -i 's|http://.*archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+
+        - name: Replace security mirrors if apt-get fails
+          command: sed -i 's|http://.*security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+
+        - name: Re-run package update
+          apt:
+            update_cache: yes
+      rescue:
+        - name: Print error if mirrors fail
+          debug:
+            msg: "Package installation retry failed. Please check repository settings."

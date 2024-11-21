@@ -18,7 +18,7 @@ resource "aws_autoscaling_group" "three-tier-app-asg" {
     propagate_at_launch = true
   }
 
-
+ 
 }
 
 # Create a SG for App
@@ -26,6 +26,8 @@ resource "aws_security_group" "three-tier-ec2-asg-sg-app" {
   name                = "three-tier-ec2-asg-sg-app" 
   description         = "SG for EC2 instances in the App Auto Scaling Group"
   vpc_id              = aws_vpc.three-tier-vpc.id
+
+  
 
   ingress {
     from_port = 3306
@@ -51,6 +53,14 @@ resource "aws_security_group" "three-tier-ec2-asg-sg-app" {
       protocol    = "icmp"
       security_groups = [aws_security_group.three-tier-ec2-asg-sg.id]
   }
+
+  ingress {
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"] # Adjust to a specific range if required
+  }
+  
   egress {
     from_port = 0
     to_port   = 0
@@ -76,29 +86,6 @@ resource "aws_launch_template" "three-tier-app-template"                        
     associate_public_ip_address = false
   }
   
-
- user_data = base64encode(<<-EOF
-#!/bin/bash
-set -e
-
-# Update the package list
-echo "Updating package list..."
-apt-get update -y
-
-# Retry package installation with fix-missing
-echo "Installing MySQL client..."
-apt-get install --fix-missing -y mysql-client || {
-  echo "Retrying package installation with a different mirror..."
-  # Replace the default mirror if it fails
-  sed -i 's|http://.*archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-  sed -i 's|http://.*security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-  apt-get update -y
-  apt-get install -y mysql-client
-}
-EOF
-)
-
-
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
@@ -111,6 +98,13 @@ EOF
     ignore_changes  = all
   }
 
+
+  user_data = base64encode(<<EOT
+#!/bin/bash
+apt update -y
+apt install -y mysql-client
+EOT
+  )
 }
 
 # Create SG fot Bastion Host
@@ -145,7 +139,7 @@ resource "aws_instance" "bastion" {
   key_name                    = "my-ec2-key-pair"
   subnet_id                   = aws_subnet.three-tier-pub-sub-1.id
   associate_public_ip_address = true
-  vpc_security_group_ids      = ["sg-0f268f6b089356d99"]
+  vpc_security_group_ids      = ["sg-0dfc6200bc5743f76"]
   
   lifecycle {
     ignore_changes = [

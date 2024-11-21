@@ -77,37 +77,6 @@ resource "aws_launch_template" "three-tier-web-template" {
     associate_public_ip_address = false
   }
   
- user_data = base64encode(<<-EOF
-#!/bin/bash
-# Update system packages
-sudo apt update -y
-sudo apt upgrade -y
-
-# Install Apache
-sudo apt install -y apache2
-
-# Start Apache service
-sudo systemctl start apache2
-
-# Enable Apache to start on boot
-sudo systemctl enable apache2
-
-# Create a custom index.html file
-cat <<EOF > /var/www/html/index.html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Apache on Ubuntu</title>
-</head>
-<body>
-    <h1>Welcome to your Apache Server!</h1>
-    <p>This server is launched via an Auto Scaling Group in AWS.</p>
-</body>
-</html>
-  EOF
-  )
   iam_instance_profile {
     name = aws_iam_instance_profile.three-tier-instance-profile.name
   }
@@ -119,4 +88,23 @@ cat <<EOF > /var/www/html/index.html
       volume_type = "gp3"
     }
   }
+
+ user_data = base64encode(<<EOT
+#!/bin/bash
+apt update -y
+apt install -y apache2
+systemctl enable apache2
+systemctl start apache2
+EOT
+  )
 }
+
+
+
+
+
+
+
+
+
+
